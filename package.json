@@ -9,7 +9,6 @@
   "author": "Zach Mayer",
   "license": "MIT",
   "dependencies": {
-    "chalk": "^2.3.0",
     "discord.io": "github:woor/discord.io#gateway_v6",
     "winston": "^2.4.0"
   }
