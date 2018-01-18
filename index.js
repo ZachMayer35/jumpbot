@@ -1,32 +1,51 @@
 
 
-var Discord = require('discord.io');
-var logger = require('winston');
-var auth = require('./auth.json');
-var locations = require('./locations.json');
-// Initialize Discord Bot
+const Discord = require('discord.io');
+const logger = require('winston');
+const auth = require('./auth.json');
+const response = require('./response');
+const jpeg = require('jpeg-js');
+const fs = require('fs');
+const Jimp = require('jimp');
+
 logger.remove(logger.transports.Console);
 logger.add(logger.transports.Console, {
   colorize: true
 });
 
-const SendMessage = (msg, cmd, channelID) => {
+const SendAttachment = async function(msg, cmd, channelID) {
   logger.info(`Received Message: "${cmd}"`);
-  bot.sendMessage({
-    to: channelID,
-    message: msg
+  let mapPromise = Jimp.read(`./resources/${cmd}.png`);
+  let markPromise = Jimp.read(`./resources/mark.png`);
+  let composite = Promise.all([mapPromise, markPromise]).then((images) => {
+    let map = images[0];
+    let mapDimensions = {h: map.bitmap.height, w: map.bitmap.width};
+    let mark = images[1];
+    mark.resize(50, Jimp.AUTO).opacity(0.65);
+    return map.composite(mark, msg.x - 25, msg.y - 25);
   });
-  logger.info(`Sent Message: "${msg}"`);
+
+  composite.then((comp) => {
+    comp.getBuffer(Jimp.MIME_PNG, (err, imageBuffer) => {
+      bot.uploadFile({
+        to: channelID,
+        file: imageBuffer,
+        filename: `${cmd}.png`,
+        message: msg.message
+      }, (err, response) => {
+        if (!err) {
+          logger.info(`Sent Attachment: "${cmd}.jpg"`);
+          logger.info(`Sent Message: "${msg.message}"`);
+          logger.info(response);
+        } else {
+          logger.error(err);
+        }
+      });
+    });
+  });
 }
 
-const GetRandomLocation = (loc) => {
-  if (locations[loc]) {
-    return locations[loc][Math.floor(Math.random() * (locations[loc].length + 1))];
-  } else {
-    return 'Location Not Found! :(';
-  }
-};
-
+// Initialize Discord Bot
 var bot = new Discord.Client({
   token: auth.token,
   autorun: true
@@ -39,23 +58,30 @@ bot.on('ready', function (evt) {
   logger.info('Connected!');
   logger.info(`Logged in as ${bot.username} - (${bot.id})`);
 });
+
 bot.on('message', function (user, userID, channelID, message, evt) {
   // Our bot needs to know if it will execute a command
   // It will listen for messages that will start with `!`
-  if (message.substring(0, 1) == '!') {
-    var args = message.substring(1).split(' ');
-    var cmd = args[0].toLowerCase();
-
-    args = args.splice(1);
+  if (message.startsWith(`<@${bot.id}>`)) {
+    const args = message.toLowerCase().split(' ').map(w => w.replace(/\W+/g, ''));
+    let cmd = args.find((word) => word === 'island' || word === 'desert' || word === 'erangel' || word === 'miramar');
     switch (cmd) {
-      // !desert, !island
+      case 'erangel':
+        cmd = 'island';
+        SendAttachment(response.GetResponseMessage(cmd), cmd, channelID);
+        break;
+      case 'miramar':
+        cmd = 'desert';
+        SendAttachment(response.GetResponseMessage(cmd), cmd, channelID);
+        break;
       case 'desert':
       case 'island':
-        SendMessage(`Y'all should jump ${GetRandomLocation(cmd)}!`, cmd, channelID)
+        SendAttachment(response.GetResponseMessage(cmd), cmd, channelID);
         break;
       default:
+        logger.info(`Received message: ${message}, but didn't find a command (${cmd})`);
+        logger.info(args);
         break;
     }
   }
 });
-
