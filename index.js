@@ -1,8 +1,7 @@
 
-
+require('dotenv').config();
 const Discord = require('discord.io');
 const logger = require('winston');
-const auth = require('./auth.json');
 const response = require('./response');
 const jpeg = require('jpeg-js');
 const fs = require('fs');
@@ -45,9 +44,14 @@ const SendAttachment = async function(msg, cmd, channelID) {
   });
 }
 
+if(!process.env.DISCORD_AUTH){
+  logger.error('NO DISCORD_AUTH ENVIRONMENT VAR SET');
+  return;
+};
+
 // Initialize Discord Bot
 var bot = new Discord.Client({
-  token: auth.token,
+  token: process.env.DISCORD_AUTH,
   autorun: true
 });
 logger.info('Connecting...');
