@@ -6,11 +6,32 @@ const response = require('./response');
 const jpeg = require('jpeg-js');
 const fs = require('fs');
 const Jimp = require('jimp');
+const express = require('express');
+
+const app = express();
+const port = process.env.PORT || 5000;
+app.listen(port, () => {
+  logger.info(`Webapp Bound to ${port}`);
+});
 
 logger.remove(logger.transports.Console);
 logger.add(logger.transports.Console, {
   colorize: true
 });
+
+const SendMessage = async function(msg, cmd, channelID) {
+  logger.info(`Received Message: "${cmd}"`);
+  bot.sendMessage({
+    to: channelID,
+    message: msg
+  }, (err, response) => {
+    if (!err) {
+      logger.info(`Sent Message: "${msg}"`);
+    } else {
+      logger.error(err);
+    }
+  });
+}
 
 const SendAttachment = async function(msg, cmd, channelID) {
   logger.info(`Received Message: "${cmd}"`);
@@ -67,6 +88,10 @@ bot.on('message', function (user, userID, channelID, message, evt) {
   // Our bot needs to know if it will execute a command
   // It will listen for messages that will start with `!`
   if (message.startsWith(`<@${bot.id}>`)) {
+    if(message.length > 200) {
+      SendMessage('tl;dr', message, channelID);
+      return;
+    }
     const args = message.toLowerCase().split(' ').map(w => w.replace(/\W+/g, ''));
     let cmd = args.find((word) => word === 'island' || word === 'desert' || word === 'erangel' || word === 'miramar');
     switch (cmd) {
@@ -89,3 +114,11 @@ bot.on('message', function (user, userID, channelID, message, evt) {
     }
   }
 });
+
+
+if(process.env.HEROKU_DYNO){
+  // pings server every 15 minutes to prevent dynos from sleeping
+  setInterval(() => {
+    http.get('http://your-app-name.herokuapp.com');
+  }, 900000);
+}

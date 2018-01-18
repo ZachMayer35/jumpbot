@@ -15,6 +15,7 @@
   "dependencies": {
     "discord.io": "github:woor/discord.io#gateway_v6",
     "dotenv": "^4.0.0",
+    "express": "^4.16.2",
     "jimp": "^0.2.28",
     "jpeg-js": "^0.3.3",
     "winston": "^2.4.0"
