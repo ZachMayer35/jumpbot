@@ -19,8 +19,12 @@ exports.GetMessage = (locations) => {
   const getPredicate = (i) => {
     if(i === locations.length - 1) {
       return '';
-    } else if (locations.length > 2 && i === locations.length - 2){
-      return ' or ';
+    } else if (locations.length >= 2 && i === locations.length - 2){
+      if(locations.length === 2){
+        return ' or ';
+      } else {
+        return ', or ';
+      }
     } else {
       return ', ';
     }
